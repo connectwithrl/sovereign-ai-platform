@@ -1,0 +1,15 @@
+apiVersion: v2
+name: sovereign-ai-platform
+description: A self-hostable RAG + agent serving platform for regulated, data-sovereign environments.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - rag
+  - llm
+  - agent
+  - sovereign-ai
+home: https://github.com/connectwithrl/sovereign-ai-platform
+maintainers:
+  - name: Rahul Lamba
+    email: connectwithrl@gmail.com

@@ -1,0 +1,69 @@
+# Local full-stack: API + Postgres/pgvector + Prometheus + Grafana.
+# Bring it up with:  docker compose up --build
+#   API        -> http://localhost:8000  (/healthz, /metrics, /v1/*)
+#   Prometheus -> http://localhost:9090
+#   Grafana    -> http://localhost:3000  (anonymous access enabled)
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: sovereign
+      POSTGRES_PASSWORD: sovereign
+      POSTGRES_DB: sovereign
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sovereign -d sovereign"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      # Production retrieval path: PostgreSQL + pgvector. The app auto-creates
+      # the extension, table, and HNSW cosine index on startup.
+      SOVEREIGN_DATABASE_URL: postgresql+psycopg://sovereign:sovereign@postgres:5432/sovereign
+      SOVEREIGN_OTEL_ENABLED: "false"
+      # Default to the deterministic echo backend so the stack runs with no
+      # external model server and no API key.
+      SOVEREIGN_SERVING_BACKEND: echo
+      # --- To serve a real model via an OpenAI-compatible server (e.g. vLLM) ---
+      # SOVEREIGN_SERVING_BACKEND: openai
+      # SOVEREIGN_OPENAI_BASE_URL: http://vllm:8000/v1
+      # SOVEREIGN_OPENAI_API_KEY: not-needed-for-local-vllm
+      # SOVEREIGN_SERVING_MODEL: meta-llama/Llama-3.1-8B-Instruct
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./deploy/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    depends_on:
+      - api
+
+  grafana:
+    image: grafana/grafana:latest
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+    volumes:
+      - ./deploy/grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+
+volumes:
+  postgres-data:

@@ -1,0 +1,1 @@
+"""Retrieval-augmented generation pipeline: chunk -> embed -> store -> retrieve -> ground."""

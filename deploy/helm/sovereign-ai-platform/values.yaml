@@ -1,0 +1,91 @@
+# Default values for sovereign-ai-platform.
+
+replicaCount: 2
+
+image:
+  repository: ghcr.io/connectwithrl/sovereign-ai-platform
+  # Overrides the image tag; defaults to the chart appVersion when empty.
+  tag: ""
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  name: ""
+
+podAnnotations: {}
+
+service:
+  type: ClusterIP
+  port: 8000
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi
+
+# Liveness/readiness probes hit the app's /healthz endpoint.
+probes:
+  liveness:
+    path: /healthz
+    initialDelaySeconds: 15
+    periodSeconds: 20
+    timeoutSeconds: 5
+    failureThreshold: 3
+  readiness:
+    path: /healthz
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+# Application configuration mapped to SOVEREIGN_* environment variables.
+config:
+  # Model serving backend: echo | openai | bedrock.
+  servingBackend: openai
+  # OpenAI-compatible serving endpoint. Point this at an in-cluster vLLM
+  # service (e.g. a Service named "vllm" in the same namespace).
+  openaiBaseUrl: http://vllm.sovereign.svc.cluster.local:8000/v1
+  servingModel: meta-llama/Llama-3.1-8B-Instruct
+  embeddingBackend: hashing
+  embeddingDim: 256
+  vectorTable: documents
+  defaultLanguage: en
+  otelEnabled: false
+  otelExporterOtlpEndpoint: ""
+
+# Database connection. SOVEREIGN_DATABASE_URL is sourced from an existing
+# Kubernetes Secret to keep credentials out of the chart values.
+database:
+  existingSecret: sovereign-db
+  secretKey: database-url
+
+# Extra raw environment variables (name/value) appended to the container.
+extraEnv: []
+# Extra envFrom sources (e.g. secretRef for SOVEREIGN_OPENAI_API_KEY).
+extraEnvFrom: []
+
+# Prometheus Operator ServiceMonitor (requires the Prometheus Operator CRDs).
+serviceMonitor:
+  enabled: false
+  interval: 15s
+  scrapeTimeout: 10s
+  path: /metrics
+  labels: {}
+
+# Horizontal Pod Autoscaler.
+hpa:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 75
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

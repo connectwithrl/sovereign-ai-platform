@@ -1,0 +1,102 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "sovereign-ai-platform.fullname" . }}
+  labels:
+    {{- include "sovereign-ai-platform.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.hpa.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "sovereign-ai-platform.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "sovereign-ai-platform.selectorLabels" . | nindent 8 }}
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "sovereign-ai-platform.serviceAccountName" . }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: {{ include "sovereign-ai-platform.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          env:
+            - name: SOVEREIGN_HOST
+              value: "0.0.0.0"
+            - name: SOVEREIGN_PORT
+              value: "8000"
+            - name: SOVEREIGN_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.existingSecret }}
+                  key: {{ .Values.database.secretKey }}
+            - name: SOVEREIGN_SERVING_BACKEND
+              value: {{ .Values.config.servingBackend | quote }}
+            - name: SOVEREIGN_OPENAI_BASE_URL
+              value: {{ .Values.config.openaiBaseUrl | quote }}
+            - name: SOVEREIGN_SERVING_MODEL
+              value: {{ .Values.config.servingModel | quote }}
+            - name: SOVEREIGN_EMBEDDING_BACKEND
+              value: {{ .Values.config.embeddingBackend | quote }}
+            - name: SOVEREIGN_EMBEDDING_DIM
+              value: {{ .Values.config.embeddingDim | quote }}
+            - name: SOVEREIGN_VECTOR_TABLE
+              value: {{ .Values.config.vectorTable | quote }}
+            - name: SOVEREIGN_DEFAULT_LANGUAGE
+              value: {{ .Values.config.defaultLanguage | quote }}
+            - name: SOVEREIGN_OTEL_ENABLED
+              value: {{ .Values.config.otelEnabled | quote }}
+            {{- if .Values.config.otelExporterOtlpEndpoint }}
+            - name: SOVEREIGN_OTEL_EXPORTER_OTLP_ENDPOINT
+              value: {{ .Values.config.otelExporterOtlpEndpoint | quote }}
+            {{- end }}
+            {{- with .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with .Values.extraEnvFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.probes.liveness.path }}
+              port: http
+            initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.liveness.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.liveness.failureThreshold }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.probes.readiness.path }}
+              port: http
+            initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.readiness.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.readiness.failureThreshold }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
