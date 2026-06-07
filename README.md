@@ -30,16 +30,16 @@ Three design choices carry most of the weight (full reasoning in [`docs/adr/`](d
 flowchart LR
     subgraph Clients
         H[HTTP client]
-        M[MCP client<br/>Claude Code / agent]
+        M["MCP client<br/>Claude Code / agent"]
     end
-    H --> API[FastAPI<br/>/v1/ingest /v1/search /v1/chat]
-    M --> MCP[MCP server<br/>search / answer / ingest tools]
+    H --> API["FastAPI<br/>/v1/ingest /v1/search /v1/chat"]
+    M --> MCP["MCP server<br/>search / answer / ingest tools"]
     API --> AG[RAG pipeline]
     MCP --> AG
-    AG --> EMB[Embedder<br/>hashing | OpenAI]
-    AG --> VS[(Vector store<br/>in-memory | pgvector)]
-    AG --> SRV[Serving backend<br/>echo | vLLM/OpenAI | Bedrock]
-    AG --> GRD[Grounding eval / guardrail]
+    AG --> EMB["Embedder<br/>hashing / OpenAI"]
+    AG --> VS[("Vector store<br/>in-memory / pgvector")]
+    AG --> SRV["Serving backend<br/>echo / vLLM / OpenAI / Bedrock"]
+    AG --> GRD["Grounding eval / guardrail"]
     API -. /metrics .-> PROM[Prometheus]
     PROM --> GRAF[Grafana]
     API -. OTLP .-> OTEL[OpenTelemetry]

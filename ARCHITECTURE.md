@@ -77,9 +77,9 @@ flowchart TB
     end
 
     subgraph backends["Pluggable backends (selected by config)"]
-        serving["Serving: EchoBackend |<br/>OpenAICompatBackend | BedrockBackend"]
-        embedder["Embedder: HashingEmbedder | OpenAIEmbedder"]
-        store["VectorStore: InMemoryStore | PgVectorStore (HNSW cosine)"]
+        serving["Serving: EchoBackend /<br/>OpenAICompatBackend / BedrockBackend"]
+        embedder["Embedder: HashingEmbedder / OpenAIEmbedder"]
+        store["VectorStore: InMemoryStore / PgVectorStore (HNSW cosine)"]
     end
 
     subgraph obs["Observability sidecar"]
